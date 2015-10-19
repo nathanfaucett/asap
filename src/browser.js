@@ -8,7 +8,9 @@ if (BrowserMutationObserver) {
     index = 0;
     queue = [];
 
-    observer = new BrowserMutationObserver(function onObserve() {
+    observer = new BrowserMutationObserver(function onChange() {
+        var fn;
+
         if (queue.length > 0) {
             fn = queue.shift();
             fn();
@@ -32,15 +34,13 @@ if (BrowserMutationObserver) {
     queue = [];
 
     window.addEventListener("message", function onMessage(event) {
-        var source = event.source,
-            fn;
+        var source = event.source;
 
         if ((source === window || source === null) && event.data === "asap") {
             event.stopPropagation();
 
             if (queue.length > 0) {
-                fn = queue.shift();
-                fn();
+                queue.shift()();
             }
         }
     }, true);

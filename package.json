@@ -23,10 +23,10 @@
   "readmeFilename": "README.md",
   "devDependencies": {
     "grunt": "^0.4.5",
-    "grunt-contrib-jshint": "^0.10.0",
-    "grunt-jsbeautifier": "^0.2.7",
-    "tap-spec": "^4.0.0",
-    "tape": "^4.0.0",
-    "zuul": "^3.0.0"
+    "grunt-contrib-jshint": "^0.11.3",
+    "grunt-jsbeautifier": "^0.2.10",
+    "tap-spec": "^4.1.0",
+    "tape": "^4.2.0",
+    "zuul": "^3.6.0"
   }
 }
