@@ -3,80 +3,63 @@ var hasWindow = typeof(window) !== "undefined",
     asap;
 
 
-function createMutationObserver() {
-    var node = document.createTextNode(""),
-        index = 0,
-        queue = [],
-        observer = new BrowserMutationObserver(function onChange() {
-            var fn;
+if (BrowserMutationObserver) {
+    asap = (function createMutationObserver() {
+        var node = document.createTextNode(""),
+            index = 0,
+            queue = [],
+            observer = new BrowserMutationObserver(function onChange() {
+                var fn;
 
-            if (queue.length > 0) {
-                fn = queue.shift();
-                fn();
-            }
+                if (queue.length > 0) {
+                    fn = queue.shift();
+                    fn();
+                }
+            });
+
+        observer.observe(node, {
+            characterData: true
         });
 
-    observer.observe(node, {
-        characterData: true
-    });
-
-    return function asap(fn) {
-        queue[queue.length] = fn;
-        index = (index + 1) % 2;
-        node.data = index;
-    };
-}
-
-function createSetImmediate() {
-    return function asap(fn) {
+        return function asap(fn) {
+            queue[queue.length] = fn;
+            index = (index + 1) % 2;
+            node.data = index;
+        };
+    }());
+} else if (hasWindow && window.setImmediate) {
+    asap = function asap(fn) {
         window.setImmediate(fn);
     };
-}
+} else if (hasWindow && window.postMessage && window.addEventListener) {
+    asap = (function createMessageEventListener() {
+        var queue = [];
 
-function createMessageEventListener() {
-    var queue = [];
+        window.addEventListener("message", function onMessage(event) {
+            var source = event.source;
 
-    window.addEventListener("message", function onMessage(event) {
-        var source = event.source;
+            if ((source === window || source === null) && event.data === "__ASAP_MESSAGE__") {
+                event.stopPropagation();
 
-        if ((source === window || source === null) && event.data === "asap") {
-            event.stopPropagation();
-
-            if (queue.length > 0) {
-                queue.shift()();
+                if (queue.length > 0) {
+                    queue.shift()();
+                }
             }
-        }
-    }, true);
+        }, true);
 
-    return function asap(fn) {
-        queue[queue.length] = fn;
-        window.postMessage("asap", "*");
-    };
-}
-
-function createSetTimeout() {
-    return function asap(fn) {
+        return function asap(fn) {
+            queue[queue.length] = fn;
+            window.postMessage("__ASAP_MESSAGE__", "*");
+        };
+    }());
+} else if (hasWindow && window.setTimeout) {
+    asap = function asap(fn) {
         window.setTimeout(fn, 0);
     };
-}
-
-function createErrorThrow() {
-    return function asap() {
+} else {
+    asap = function asap() {
         throw new Error("asap(fn) is not available in this environment");
     };
-}
-
-
-if (BrowserMutationObserver) {
-    asap = createMutationObserver();
-} else if (hasWindow && window.setImmediate) {
-    asap = createSetImmediate();
-} else if (hasWindow && window.postMessage && window.addEventListener) {
-    asap = createMessageEventListener();
-} else if (hasWindow && window.setTimeout) {
-    asap = createSetTimeout();
-} else {
-    asap = createErrorThrow();
 }
 
 
