@@ -1,37 +1,40 @@
 var hasWindow = typeof(window) !== "undefined",
     BrowserMutationObserver = hasWindow && (window.MutationObserver || window.WebKitMutationObserver),
-    asap, observer, node, index, queue;
+    asap;
 
 
-if (BrowserMutationObserver) {
-    node = document.createTextNode("");
-    index = 0;
-    queue = [];
+function createMutationObserver() {
+    var node = document.createTextNode(""),
+        index = 0,
+        queue = [],
+        observer = new BrowserMutationObserver(function onChange() {
+            var fn;
 
-    observer = new BrowserMutationObserver(function onChange() {
-        var fn;
-
-        if (queue.length > 0) {
-            fn = queue.shift();
-            fn();
-        }
-    });
+            if (queue.length > 0) {
+                fn = queue.shift();
+                fn();
+            }
+        });
 
     observer.observe(node, {
         characterData: true
     });
 
-    asap = function asap(fn) {
+    return function asap(fn) {
         queue[queue.length] = fn;
         index = (index + 1) % 2;
         node.data = index;
     };
-} else if (hasWindow && window.setImmediate) {
-    asap = function asap(fn) {
-        return window.setImmediate(fn);
+}
+
+function createSetImmediate() {
+    return function asap(fn) {
+        window.setImmediate(fn);
     };
-} else if (hasWindow && window.postMessage && window.addEventListener) {
-    queue = [];
+}
+
+function createMessageEventListener() {
+    var queue = [];
 
     window.addEventListener("message", function onMessage(event) {
         var source = event.source;
@@ -45,18 +48,35 @@ if (BrowserMutationObserver) {
         }
     }, true);
 
-    asap = function asap(fn) {
+    return function asap(fn) {
         queue[queue.length] = fn;
         window.postMessage("asap", "*");
     };
-} else if (hasWindow && window.setTimeout) {
-    asap = function asap(fn) {
+}
+
+function createSetTimeout() {
+    return function asap(fn) {
         window.setTimeout(fn, 0);
     };
-} else {
-    asap = function asap() {
+}
+
+function createErrorThrow() {
+    return function asap() {
         throw new Error("asap(fn) is not available in this environment");
     };
+}
+
+
+if (BrowserMutationObserver) {
+    asap = createMutationObserver();
+} else if (hasWindow && window.setImmediate) {
+    asap = createSetImmediate();
+} else if (hasWindow && window.postMessage && window.addEventListener) {
+    asap = createMessageEventListener();
+} else if (hasWindow && window.setTimeout) {
+    asap = createSetTimeout();
+} else {
+    asap = createErrorThrow();
 }
 
 
