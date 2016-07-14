@@ -9,11 +9,8 @@ if (BrowserMutationObserver) {
             index = 0,
             queue = [],
             observer = new BrowserMutationObserver(function onChange() {
-                var fn;
-
                 if (queue.length > 0) {
-                    fn = queue.shift();
-                    fn();
+                    queue.shift()();
                 }
             });
 
